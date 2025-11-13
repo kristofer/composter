@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{if .Outline}}Edit{{else}}New{{end}} Outline - Composter</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Composter</h1>
+            <div class="user-info">
+                <span>{{.User.Username}}</span>
+                <a href="/" class="btn-secondary">My Outlines</a>
+                <a href="/logout" class="btn-secondary">Logout</a>
+            </div>
+        </header>
+        
+        <main>
+            <div class="editor-header">
+                <input type="text" id="title" class="title-input" placeholder="Outline Title" 
+                       value="{{if .Outline}}{{.Outline.Title}}{{end}}" autofocus>
+                <div class="editor-actions">
+                    <button class="btn-primary" onclick="saveOutline()">Save</button>
+                    <a href="/" class="btn-secondary">Cancel</a>
+                </div>
+            </div>
+            
+            <div class="editor-container">
+                <div id="outliner" class="outliner">
+                    {{if .Outline}}{{.Outline.Content}}{{end}}
+                </div>
+            </div>
+            
+            <div class="editor-help">
+                <h4>Outliner Controls:</h4>
+                <ul>
+                    <li><kbd>Tab</kbd> - Indent line</li>
+                    <li><kbd>Shift+Tab</kbd> - Unindent line</li>
+                    <li><kbd>Enter</kbd> - New line at same level</li>
+                    <li><kbd>Ctrl+S</kbd> - Save outline</li>
+                </ul>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+    const outlineId = {{if .Outline}}{{.Outline.ID}}{{else}}0{{end}};
+    const outliner = document.getElementById('outliner');
+    const titleInput = document.getElementById('title');
+    
+    // Make div contenteditable for outliner functionality
+    outliner.contentEditable = true;
+    outliner.spellcheck = false;
+    
+    // Handle Tab key for indentation
+    outliner.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            const line = range.startContainer.parentElement;
+            
+            if (e.shiftKey) {
+                // Unindent
+                const currentMargin = parseInt(line.style.marginLeft || '0');
+                if (currentMargin > 0) {
+                    line.style.marginLeft = (currentMargin - 30) + 'px';
+                }
+            } else {
+                // Indent
+                const currentMargin = parseInt(line.style.marginLeft || '0');
+                line.style.marginLeft = (currentMargin + 30) + 'px';
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            const currentLine = range.startContainer.parentElement;
+            const currentMargin = currentLine.style.marginLeft || '0px';
+            
+            // Create new line with same indentation
+            const newLine = document.createElement('div');
+            newLine.style.marginLeft = currentMargin;
+            newLine.innerHTML = '<br>';
+            
+            currentLine.parentNode.insertBefore(newLine, currentLine.nextSibling);
+            
+            // Move cursor to new line
+            const newRange = document.createRange();
+            newRange.setStart(newLine, 0);
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+        } else if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            saveOutline();
+        }
+    });
+    
+    // Initialize content with divs if empty
+    if (outliner.innerHTML.trim() === '') {
+        outliner.innerHTML = '<div><br></div>';
+    } else {
+        // Wrap existing text in divs if needed
+        const lines = outliner.innerHTML.split('\n');
+        if (lines.length > 1) {
+            outliner.innerHTML = lines.map(line => {
+                if (!line.trim()) return '<div><br></div>';
+                return '<div>' + line + '</div>';
+            }).join('');
+        }
+    }
+    
+    function saveOutline() {
+        const title = titleInput.value.trim();
+        if (!title) {
+            alert('Please enter a title');
+            titleInput.focus();
+            return;
+        }
+        
+        const content = outliner.innerHTML;
+        
+        fetch('/api/outline/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id: outlineId,
+                title: title,
+                content: content
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/';
+            } else {
+                alert('Error saving outline');
+            }
+        })
+        .catch(error => {
+            alert('Error saving outline');
+        });
+    }
+    </script>
+</body>
+</html>
