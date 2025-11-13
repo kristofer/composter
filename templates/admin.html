@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Composter</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Composter Admin</h1>
+            <div class="user-info">
+                <span>{{.User.Username}}</span>
+                <a href="/" class="btn-secondary">My Outlines</a>
+                <a href="/logout" class="btn-secondary">Logout</a>
+            </div>
+        </header>
+        
+        <main>
+            <div class="page-header">
+                <h2>User Management</h2>
+                <button class="btn-primary" onclick="showCreateUser()">New User</button>
+            </div>
+            
+            <div id="userForm" class="user-form" style="display: none;">
+                <h3 id="formTitle">Create User</h3>
+                <form id="userFormElement" onsubmit="submitUser(event)">
+                    <input type="hidden" id="userId" value="">
+                    
+                    <div class="form-group">
+                        <label for="formUsername">Username</label>
+                        <input type="text" id="formUsername" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="formPassword">Password</label>
+                        <input type="password" id="formPassword">
+                        <small id="passwordHint"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="formIsAdmin">
+                            Administrator
+                        </label>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save</button>
+                        <button type="button" class="btn-secondary" onclick="hideUserForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Admin</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Users}}
+                    <tr>
+                        <td>{{.Username}}</td>
+                        <td>{{if .IsAdmin}}Yes{{else}}No{{end}}</td>
+                        <td>{{.CreatedAt.Format "2006-01-02"}}</td>
+                        <td>
+                            <button class="btn-small" onclick='editUser({{.ID}}, "{{.Username}}", {{.IsAdmin}})'>Edit</button>
+                            <button class="btn-danger btn-small" onclick="deleteUser({{.ID}})">Delete</button>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </main>
+    </div>
+    
+    <script>
+    function showCreateUser() {
+        document.getElementById('formTitle').textContent = 'Create User';
+        document.getElementById('userId').value = '';
+        document.getElementById('formUsername').value = '';
+        document.getElementById('formPassword').value = '';
+        document.getElementById('formPassword').required = true;
+        document.getElementById('formIsAdmin').checked = false;
+        document.getElementById('passwordHint').textContent = '';
+        document.getElementById('userForm').style.display = 'block';
+    }
+    
+    function editUser(id, username, isAdmin) {
+        document.getElementById('formTitle').textContent = 'Edit User';
+        document.getElementById('userId').value = id;
+        document.getElementById('formUsername').value = username;
+        document.getElementById('formPassword').value = '';
+        document.getElementById('formPassword').required = false;
+        document.getElementById('formIsAdmin').checked = isAdmin;
+        document.getElementById('passwordHint').textContent = 'Leave blank to keep current password';
+        document.getElementById('userForm').style.display = 'block';
+    }
+    
+    function hideUserForm() {
+        document.getElementById('userForm').style.display = 'none';
+    }
+    
+    function submitUser(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('userId').value;
+        const username = document.getElementById('formUsername').value;
+        const password = document.getElementById('formPassword').value;
+        const isAdmin = document.getElementById('formIsAdmin').checked;
+        
+        const url = id ? '/api/admin/user/update' : '/api/admin/user/create';
+        const data = {
+            username: username,
+            password: password,
+            is_admin: isAdmin
+        };
+        
+        if (id) {
+            data.id = parseInt(id);
+        }
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error saving user');
+            }
+        })
+        .catch(error => {
+            alert('Error saving user');
+        });
+    }
+    
+    function deleteUser(id) {
+        if (!confirm('Are you sure you want to delete this user?')) {
+            return;
+        }
+        
+        fetch('/api/admin/user/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ id: id })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting user');
+            }
+        })
+        .catch(error => {
+            alert('Error deleting user');
+        });
+    }
+    </script>
+</body>
+</html>
