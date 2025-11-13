@@ -58,7 +58,8 @@
                 <input type="text" id="title" class="title-input" placeholder="Outline Title" 
                        value="{{if .Outline}}{{.Outline.Title}}{{end}}" autofocus>
                 <div class="editor-actions">
-                    <button class="btn-primary" onclick="saveOutline()">Save</button>
+                    <button class="btn-primary" onclick="saveOutline(false)">Save</button>
+                    <button class="btn-primary" onclick="saveOutline(true)">Close</button>
                     <a href="/" class="btn-secondary">Cancel</a>
                 </div>
             </div>
@@ -70,9 +71,11 @@
             <div class="editor-help">
                 <h4>Outliner Controls:</h4>
                 <ul>
-                    <li><kbd>Tab</kbd> - Indent line</li>
-                    <li><kbd>Shift+Tab</kbd> - Unindent line</li>
+                    <li><kbd>Tab</kbd> - Indent line (and all children)</li>
+                    <li><kbd>Shift+Tab</kbd> - Unindent line (and all children)</li>
                     <li><kbd>Enter</kbd> - New line</li>
+                    <li><kbd>Shift+Click</kbd> - Hide/Unhide children of clicked item</li>
+                    <li><kbd>Ctrl+Shift+Click</kbd> - Collapse all / Expand all</li>
                     <li><kbd>Ctrl+S</kbd> / <kbd>Cmd+S</kbd> - Save outline</li>
                     <li><kbd>Ctrl+Z</kbd> / <kbd>Cmd+Z</kbd> - Undo</li>
                     <li><kbd>Ctrl+Y</kbd> / <kbd>Cmd+Shift+Z</kbd> - Redo</li>
@@ -85,6 +88,10 @@
     const outlineId = {{if .Outline}}{{.Outline.ID}}{{else}}0{{end}};
     const titleInput = document.getElementById('title');
     const editor = document.getElementById('outline-editor');
+    
+    // Track collapsed state for each line and full content
+    let collapsedLines = new Set();
+    let fullContent = ''; // Store the full uncollapsed content
     
     // Load existing content
     const initialContent = `{{if .Outline}}{{.Outline.Content}}{{end}}`;
@@ -103,11 +110,27 @@
                 const text = div.textContent || '';
                 lines.push(indent + text);
             });
-            editor.textContent = lines.join('\n');
+            fullContent = lines.join('\n');
+            editor.textContent = fullContent;
         } else {
-            editor.textContent = temp.textContent || '';
+            fullContent = temp.textContent || '';
+            editor.textContent = fullContent;
         }
     }
+    
+    // Add click handler for hide/unhide functionality
+    editor.addEventListener('click', function(e) {
+        if (e.shiftKey) {
+            e.preventDefault();
+            if (e.ctrlKey || e.metaKey) {
+                // Ctrl+Shift+Click: Collapse all or expand all
+                toggleAllCollapse();
+            } else {
+                // Shift+Click: Toggle children of clicked line
+                toggleChildren(e);
+            }
+        }
+    });
     
     // Handle keyboard shortcuts
     editor.addEventListener('keydown', function(e) {
@@ -118,17 +141,17 @@
             const range = selection.getRangeAt(0);
             
             if (e.shiftKey) {
-                // Shift+Tab: Unindent (remove up to 2 spaces at start of line)
-                unindentCurrentLine(range);
+                // Shift+Tab: Unindent (with children)
+                unindentCurrentLineWithChildren(range);
             } else {
-                // Tab: Indent (add 2 spaces)
-                indentCurrentLine(range);
+                // Tab: Indent (with children)
+                indentCurrentLineWithChildren(range);
             }
         }
         // Ctrl/Cmd + S for save
         else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
-            saveOutline();
+            saveOutline(false);
         }
         // Enter key - new line
         else if (e.key === 'Enter') {
@@ -206,46 +229,167 @@
         }
     }
     
-    function indentCurrentLine(range) {
-        const lineInfo = getLineAtCursor();
-        if (!lineInfo) return;
-        
-        const text = editor.textContent;
-        const newText = text.substring(0, lineInfo.start) + 
-                       '  ' + 
-                       text.substring(lineInfo.start);
-        
-        editor.textContent = newText;
-        setCursorPosition(lineInfo.cursor + 2);
+    function getLineIndentLevel(lineText) {
+        let spaces = 0;
+        for (let i = 0; i < lineText.length; i++) {
+            if (lineText[i] === ' ') {
+                spaces++;
+            } else {
+                break;
+            }
+        }
+        return Math.floor(spaces / 2);
     }
     
-    function unindentCurrentLine(range) {
-        const lineInfo = getLineAtCursor();
-        if (!lineInfo) return;
-        
+    function getLinesAndCurrentLineIndex() {
         const text = editor.textContent;
-        const lineText = text.substring(lineInfo.start, lineInfo.end);
+        const lines = text.split('\n');
+        const cursorPos = getAbsoluteCursorPosition();
         
-        // Remove up to 2 spaces from the beginning
+        // Find which line the cursor is on
+        let currentLineIndex = 0;
+        let charCount = 0;
+        for (let i = 0; i < lines.length; i++) {
+            charCount += lines[i].length;
+            if (i < lines.length - 1) charCount++; // Add newline
+            if (cursorPos <= charCount) {
+                currentLineIndex = i;
+                break;
+            }
+        }
+        
+        return { lines, currentLineIndex };
+    }
+    
+    function getChildrenIndices(lines, parentIndex) {
+        const parentIndent = getLineIndentLevel(lines[parentIndex]);
+        const children = [];
+        
+        for (let i = parentIndex + 1; i < lines.length; i++) {
+            const indent = getLineIndentLevel(lines[i]);
+            if (indent <= parentIndent) {
+                // Found a line at same or lesser indent - no longer a child
+                break;
+            }
+            if (indent === parentIndent + 1) {
+                // Direct child
+                children.push(i);
+            }
+        }
+        
+        return children;
+    }
+    
+    function getAllDescendantIndices(lines, parentIndex) {
+        const parentIndent = getLineIndentLevel(lines[parentIndex]);
+        const descendants = [];
+        
+        for (let i = parentIndex + 1; i < lines.length; i++) {
+            const indent = getLineIndentLevel(lines[i]);
+            if (indent <= parentIndent) {
+                // Found a line at same or lesser indent - no longer a descendant
+                break;
+            }
+            descendants.push(i);
+        }
+        
+        return descendants;
+    }
+    
+    function indentCurrentLineWithChildren(range) {
+        // First, ensure we're working with full content
+        syncFullContent();
+        
+        const { lines, currentLineIndex } = getLinesAndCurrentLineIndex();
+        const descendants = getAllDescendantIndices(lines, currentLineIndex);
+        
+        // Indent current line and all descendants
+        const indicesToIndent = [currentLineIndex, ...descendants];
+        indicesToIndent.forEach(index => {
+            lines[index] = '  ' + lines[index];
+        });
+        
+        const newText = lines.join('\n');
+        const cursorPos = getAbsoluteCursorPosition();
+        fullContent = newText;
+        editor.textContent = newText;
+        
+        // Reapply collapsed state
+        if (collapsedLines.size > 0) {
+            renderWithCollapsedState();
+        }
+        
+        setCursorPosition(cursorPos + 2);
+    }
+    
+    function unindentCurrentLineWithChildren(range) {
+        // First, ensure we're working with full content
+        syncFullContent();
+        
+        const { lines, currentLineIndex } = getLinesAndCurrentLineIndex();
+        const currentLine = lines[currentLineIndex];
+        
+        // Check if current line has indent to remove
         let spacesToRemove = 0;
-        for (let i = 0; i < Math.min(2, lineText.length); i++) {
-            if (lineText[i] === ' ') {
+        for (let i = 0; i < Math.min(2, currentLine.length); i++) {
+            if (currentLine[i] === ' ') {
                 spacesToRemove++;
             } else {
                 break;
             }
         }
         
-        if (spacesToRemove > 0) {
-            const newText = text.substring(0, lineInfo.start) + 
-                           text.substring(lineInfo.start + spacesToRemove);
-            
-            editor.textContent = newText;
-            setCursorPosition(Math.max(lineInfo.start, lineInfo.cursor - spacesToRemove));
+        if (spacesToRemove === 0) return;
+        
+        const descendants = getAllDescendantIndices(lines, currentLineIndex);
+        
+        // Unindent current line and all descendants
+        const indicesToUnindent = [currentLineIndex, ...descendants];
+        indicesToUnindent.forEach(index => {
+            let removed = 0;
+            for (let i = 0; i < Math.min(2, lines[index].length); i++) {
+                if (lines[index][i] === ' ') {
+                    removed++;
+                } else {
+                    break;
+                }
+            }
+            if (removed > 0) {
+                lines[index] = lines[index].substring(removed);
+            }
+        });
+        
+        const newText = lines.join('\n');
+        const cursorPos = getAbsoluteCursorPosition();
+        fullContent = newText;
+        editor.textContent = newText;
+        
+        // Reapply collapsed state
+        if (collapsedLines.size > 0) {
+            renderWithCollapsedState();
+        }
+        
+        setCursorPosition(Math.max(0, cursorPos - spacesToRemove));
+    }
+    
+    function syncFullContent() {
+        // If we have collapsed lines, we need to reconstruct full content from current view
+        if (collapsedLines.size > 0) {
+            // Expand all temporarily to get full content
+            const savedCollapsed = new Set(collapsedLines);
+            collapsedLines.clear();
+            renderWithCollapsedState(); // This will show everything
+            fullContent = editor.textContent;
+            collapsedLines = savedCollapsed;
+            renderWithCollapsedState(); // Restore collapsed state
+        } else {
+            fullContent = editor.textContent;
         }
     }
     
     function insertNewLineWithIndent() {
+        syncFullContent(); // Sync before modification
+        
         const lineInfo = getLineAtCursor();
         if (!lineInfo) return;
         
@@ -268,11 +412,128 @@
                        '\n' + indent + 
                        text.substring(lineInfo.cursor);
         
+        fullContent = newText;
         editor.textContent = newText;
+        
+        // Reapply collapsed state
+        if (collapsedLines.size > 0) {
+            renderWithCollapsedState();
+        }
+        
         setCursorPosition(lineInfo.cursor + 1 + spaces);
     }
     
-    function saveOutline() {
+    function toggleChildren(e) {
+        const cursorPos = getAbsoluteCursorPosition();
+        setCursorPosition(cursorPos); // Set cursor at click position
+        
+        // Work with full content
+        const lines = fullContent.split('\n');
+        let currentLineIndex = 0;
+        let charCount = 0;
+        for (let i = 0; i < lines.length; i++) {
+            charCount += lines[i].length;
+            if (i < lines.length - 1) charCount++; // Add newline
+            if (cursorPos <= charCount) {
+                currentLineIndex = i;
+                break;
+            }
+        }
+        
+        const children = getChildrenIndicesFromLines(lines, currentLineIndex);
+        
+        if (children.length === 0) return; // No children to toggle
+        
+        const lineKey = currentLineIndex;
+        
+        if (collapsedLines.has(lineKey)) {
+            // Expand: show children
+            collapsedLines.delete(lineKey);
+        } else {
+            // Collapse: hide children
+            collapsedLines.add(lineKey);
+        }
+        
+        renderWithCollapsedState();
+        setCursorPosition(cursorPos);
+    }
+    
+    function getChildrenIndicesFromLines(lines, parentIndex) {
+        const parentIndent = getLineIndentLevel(lines[parentIndex]);
+        const children = [];
+        
+        for (let i = parentIndex + 1; i < lines.length; i++) {
+            const indent = getLineIndentLevel(lines[i]);
+            if (indent <= parentIndent) {
+                break;
+            }
+            if (indent === parentIndent + 1) {
+                children.push(i);
+            }
+        }
+        
+        return children;
+    }
+    
+    function toggleAllCollapse() {
+        const lines = fullContent.split('\n');
+        
+        if (collapsedLines.size > 0) {
+            // Expand all
+            collapsedLines.clear();
+        } else {
+            // Collapse all: find all lines with children
+            for (let i = 0; i < lines.length; i++) {
+                const children = getChildrenIndicesFromLines(lines, i);
+                if (children.length > 0) {
+                    collapsedLines.add(i);
+                }
+            }
+        }
+        
+        const cursorPos = getAbsoluteCursorPosition();
+        renderWithCollapsedState();
+        setCursorPosition(cursorPos);
+    }
+    
+    function renderWithCollapsedState() {
+        const lines = fullContent.split('\n');
+        
+        // Build a set of lines to hide
+        const hiddenLines = new Set();
+        
+        collapsedLines.forEach(parentIndex => {
+            const descendants = getAllDescendantIndicesFromLines(lines, parentIndex);
+            descendants.forEach(index => hiddenLines.add(index));
+        });
+        
+        // Render visible lines
+        const visibleLines = lines.map((line, index) => {
+            if (hiddenLines.has(index)) {
+                return null;
+            }
+            return line;
+        }).filter(line => line !== null);
+        
+        editor.textContent = visibleLines.join('\n');
+    }
+    
+    function getAllDescendantIndicesFromLines(lines, parentIndex) {
+        const parentIndent = getLineIndentLevel(lines[parentIndex]);
+        const descendants = [];
+        
+        for (let i = parentIndex + 1; i < lines.length; i++) {
+            const indent = getLineIndentLevel(lines[i]);
+            if (indent <= parentIndent) {
+                break;
+            }
+            descendants.push(i);
+        }
+        
+        return descendants;
+    }
+    
+    function saveOutline(shouldClose) {
         const title = titleInput.value.trim();
         if (!title) {
             alert('Please enter a title');
@@ -280,8 +541,11 @@
             return;
         }
         
-        // Get content from editor
-        const plainText = editor.textContent;
+        // Sync full content before saving
+        syncFullContent();
+        
+        // Get content from fullContent (not editor, which might have collapsed lines)
+        const plainText = fullContent;
         
         // Convert plain text with indentation to HTML format for storage
         const lines = plainText.split('\n');
@@ -316,7 +580,16 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                window.location.href = '/';
+                if (shouldClose) {
+                    window.location.href = '/';
+                } else {
+                    // Show success message
+                    const savedMsg = document.createElement('div');
+                    savedMsg.textContent = 'Saved!';
+                    savedMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #2ecc71; color: white; padding: 10px 20px; border-radius: 4px; z-index: 1000;';
+                    document.body.appendChild(savedMsg);
+                    setTimeout(() => savedMsg.remove(), 2000);
+                }
             } else {
                 alert('Error saving outline');
             }
