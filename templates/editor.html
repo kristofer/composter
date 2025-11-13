@@ -5,6 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{if .Outline}}Edit{{else}}New{{end}} Outline - Composter</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .outline-editor {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 500px;
+            outline: none;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #ffffff;
+        }
+        
+        .outline-editor:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+        
+        .outline-item {
+            min-height: 1.6em;
+            position: relative;
+        }
+        
+        .outline-item:before {
+            content: '•';
+            position: absolute;
+            left: -15px;
+            color: #999;
+        }
+        
+        .outline-item:empty:before {
+            content: '';
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -28,9 +64,7 @@
             </div>
             
             <div class="editor-container">
-                <div id="outliner" class="outliner">
-                    {{if .Outline}}{{.Outline.Content}}{{end}}
-                </div>
+                <div id="outline-editor" class="outline-editor" contenteditable="true" spellcheck="false"></div>
             </div>
             
             <div class="editor-help">
@@ -38,8 +72,10 @@
                 <ul>
                     <li><kbd>Tab</kbd> - Indent line</li>
                     <li><kbd>Shift+Tab</kbd> - Unindent line</li>
-                    <li><kbd>Enter</kbd> - New line at same level</li>
-                    <li><kbd>Ctrl+S</kbd> - Save outline</li>
+                    <li><kbd>Enter</kbd> - New line</li>
+                    <li><kbd>Ctrl+S</kbd> / <kbd>Cmd+S</kbd> - Save outline</li>
+                    <li><kbd>Ctrl+Z</kbd> / <kbd>Cmd+Z</kbd> - Undo</li>
+                    <li><kbd>Ctrl+Y</kbd> / <kbd>Cmd+Shift+Z</kbd> - Redo</li>
                 </ul>
             </div>
         </main>
@@ -47,70 +83,193 @@
     
     <script>
     const outlineId = {{if .Outline}}{{.Outline.ID}}{{else}}0{{end}};
-    const outliner = document.getElementById('outliner');
     const titleInput = document.getElementById('title');
+    const editor = document.getElementById('outline-editor');
     
-    // Make div contenteditable for outliner functionality
-    outliner.contentEditable = true;
-    outliner.spellcheck = false;
+    // Load existing content
+    const initialContent = `{{if .Outline}}{{.Outline.Content}}{{end}}`;
+    if (initialContent) {
+        // Convert HTML to plain text with indentation
+        const temp = document.createElement('div');
+        temp.innerHTML = initialContent;
+        
+        const lines = [];
+        const divs = temp.querySelectorAll('div');
+        if (divs.length > 0) {
+            divs.forEach(div => {
+                const marginLeft = parseInt(div.style.marginLeft || '0');
+                const indentLevel = Math.floor(marginLeft / 30);
+                const indent = '  '.repeat(indentLevel);
+                const text = div.textContent || '';
+                lines.push(indent + text);
+            });
+            editor.textContent = lines.join('\n');
+        } else {
+            editor.textContent = temp.textContent || '';
+        }
+    }
     
-    // Handle Tab key for indentation
-    outliner.addEventListener('keydown', function(e) {
+    // Handle keyboard shortcuts
+    editor.addEventListener('keydown', function(e) {
+        // Tab for indent
         if (e.key === 'Tab') {
             e.preventDefault();
             const selection = window.getSelection();
             const range = selection.getRangeAt(0);
-            const line = range.startContainer.parentElement;
             
             if (e.shiftKey) {
-                // Unindent
-                const currentMargin = parseInt(line.style.marginLeft || '0');
-                if (currentMargin > 0) {
-                    line.style.marginLeft = (currentMargin - 30) + 'px';
-                }
+                // Shift+Tab: Unindent (remove up to 2 spaces at start of line)
+                unindentCurrentLine(range);
             } else {
-                // Indent
-                const currentMargin = parseInt(line.style.marginLeft || '0');
-                line.style.marginLeft = (currentMargin + 30) + 'px';
+                // Tab: Indent (add 2 spaces)
+                indentCurrentLine(range);
             }
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            const selection = window.getSelection();
-            const range = selection.getRangeAt(0);
-            const currentLine = range.startContainer.parentElement;
-            const currentMargin = currentLine.style.marginLeft || '0px';
-            
-            // Create new line with same indentation
-            const newLine = document.createElement('div');
-            newLine.style.marginLeft = currentMargin;
-            newLine.innerHTML = '<br>';
-            
-            currentLine.parentNode.insertBefore(newLine, currentLine.nextSibling);
-            
-            // Move cursor to new line
-            const newRange = document.createRange();
-            newRange.setStart(newLine, 0);
-            newRange.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(newRange);
-        } else if (e.ctrlKey && e.key === 's') {
+        }
+        // Ctrl/Cmd + S for save
+        else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
             saveOutline();
         }
+        // Enter key - new line
+        else if (e.key === 'Enter') {
+            e.preventDefault();
+            insertNewLineWithIndent();
+        }
     });
     
-    // Initialize content with divs if empty
-    if (outliner.innerHTML.trim() === '') {
-        outliner.innerHTML = '<div><br></div>';
-    } else {
-        // Wrap existing text in divs if needed
-        const lines = outliner.innerHTML.split('\n');
-        if (lines.length > 1) {
-            outliner.innerHTML = lines.map(line => {
-                if (!line.trim()) return '<div><br></div>';
-                return '<div>' + line + '</div>';
-            }).join('');
+    function getLineAtCursor() {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return null;
+        
+        const range = selection.getRangeAt(0);
+        const text = editor.textContent;
+        const cursorPos = getAbsoluteCursorPosition();
+        
+        // Find start of line
+        let lineStart = cursorPos;
+        while (lineStart > 0 && text[lineStart - 1] !== '\n') {
+            lineStart--;
         }
+        
+        // Find end of line
+        let lineEnd = cursorPos;
+        while (lineEnd < text.length && text[lineEnd] !== '\n') {
+            lineEnd++;
+        }
+        
+        return { start: lineStart, end: lineEnd, cursor: cursorPos };
+    }
+    
+    function getAbsoluteCursorPosition() {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return 0;
+        
+        const range = selection.getRangeAt(0);
+        const preCaretRange = range.cloneRange();
+        preCaretRange.selectNodeContents(editor);
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+        return preCaretRange.toString().length;
+    }
+    
+    function setCursorPosition(pos) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        
+        let currentPos = 0;
+        let found = false;
+        
+        function traverse(node) {
+            if (found) return;
+            
+            if (node.nodeType === Node.TEXT_NODE) {
+                const nodeLength = node.textContent.length;
+                if (currentPos + nodeLength >= pos) {
+                    range.setStart(node, pos - currentPos);
+                    range.collapse(true);
+                    found = true;
+                    return;
+                }
+                currentPos += nodeLength;
+            } else {
+                for (let child of node.childNodes) {
+                    traverse(child);
+                    if (found) return;
+                }
+            }
+        }
+        
+        traverse(editor);
+        
+        if (found) {
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }
+    
+    function indentCurrentLine(range) {
+        const lineInfo = getLineAtCursor();
+        if (!lineInfo) return;
+        
+        const text = editor.textContent;
+        const newText = text.substring(0, lineInfo.start) + 
+                       '  ' + 
+                       text.substring(lineInfo.start);
+        
+        editor.textContent = newText;
+        setCursorPosition(lineInfo.cursor + 2);
+    }
+    
+    function unindentCurrentLine(range) {
+        const lineInfo = getLineAtCursor();
+        if (!lineInfo) return;
+        
+        const text = editor.textContent;
+        const lineText = text.substring(lineInfo.start, lineInfo.end);
+        
+        // Remove up to 2 spaces from the beginning
+        let spacesToRemove = 0;
+        for (let i = 0; i < Math.min(2, lineText.length); i++) {
+            if (lineText[i] === ' ') {
+                spacesToRemove++;
+            } else {
+                break;
+            }
+        }
+        
+        if (spacesToRemove > 0) {
+            const newText = text.substring(0, lineInfo.start) + 
+                           text.substring(lineInfo.start + spacesToRemove);
+            
+            editor.textContent = newText;
+            setCursorPosition(Math.max(lineInfo.start, lineInfo.cursor - spacesToRemove));
+        }
+    }
+    
+    function insertNewLineWithIndent() {
+        const lineInfo = getLineAtCursor();
+        if (!lineInfo) return;
+        
+        const text = editor.textContent;
+        const lineText = text.substring(lineInfo.start, lineInfo.end);
+        
+        // Count leading spaces
+        let spaces = 0;
+        for (let i = 0; i < lineText.length; i++) {
+            if (lineText[i] === ' ') {
+                spaces++;
+            } else {
+                break;
+            }
+        }
+        
+        // Insert newline with same indentation
+        const indent = ' '.repeat(spaces);
+        const newText = text.substring(0, lineInfo.cursor) + 
+                       '\n' + indent + 
+                       text.substring(lineInfo.cursor);
+        
+        editor.textContent = newText;
+        setCursorPosition(lineInfo.cursor + 1 + spaces);
     }
     
     function saveOutline() {
@@ -121,7 +280,27 @@
             return;
         }
         
-        const content = outliner.innerHTML;
+        // Get content from editor
+        const plainText = editor.textContent;
+        
+        // Convert plain text with indentation to HTML format for storage
+        const lines = plainText.split('\n');
+        const htmlLines = lines.map(line => {
+            // Count leading spaces to determine indent level
+            let spaces = 0;
+            for (let i = 0; i < line.length; i++) {
+                if (line[i] === ' ') {
+                    spaces++;
+                } else {
+                    break;
+                }
+            }
+            const indentLevel = Math.floor(spaces / 2);
+            const marginLeft = indentLevel * 30;
+            const text = line.trim() || '<br>';
+            return `<div style="margin-left: ${marginLeft}px;">${text}</div>`;
+        });
+        const htmlContent = htmlLines.join('');
         
         fetch('/api/outline/save', {
             method: 'POST',
@@ -131,7 +310,7 @@
             body: JSON.stringify({
                 id: outlineId,
                 title: title,
-                content: content
+                content: htmlContent
             })
         })
         .then(response => response.json())
@@ -143,8 +322,14 @@
             }
         })
         .catch(error => {
+            console.error('Save error:', error);
             alert('Error saving outline');
         });
+    }
+    
+    // Focus the editor on load if title is filled
+    if (titleInput.value) {
+        setTimeout(() => editor.focus(), 100);
     }
     </script>
 </body>
