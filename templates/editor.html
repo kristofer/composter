@@ -264,7 +264,7 @@
         for (let i = 0; i < lines.length; i++) {
             charCount += lines[i].length;
             if (i < lines.length - 1) charCount++; // Add newline
-            if (cursorPos <= charCount) {
+            if (cursorPos < charCount || (cursorPos === charCount && i === lines.length - 1)) {
                 currentLineIndex = i;
                 break;
             }
