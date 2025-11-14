@@ -40,6 +40,24 @@
         .outline-item:empty:before {
             content: '';
         }
+        
+        .collapse-indicator {
+            display: inline-block;
+            width: 1em;
+            cursor: pointer;
+            user-select: none;
+            font-size: 12px;
+            margin-right: 4px;
+            color: #666;
+        }
+        
+        .collapse-indicator.collapsed {
+            color: #3498db;
+        }
+        
+        .collapse-indicator.expanded {
+            color: #2ecc71;
+        }
     </style>
 </head>
 <body>
@@ -113,10 +131,10 @@
                 lines.push(indent + text);
             });
             fullContent = lines.join('\n');
-            editor.textContent = fullContent;
+            updateEditorDisplay();
         } else {
             fullContent = temp.textContent || '';
-            editor.textContent = fullContent;
+            updateEditorDisplay();
         }
     }
     
@@ -253,6 +271,50 @@
         return Math.floor(spaces / 2);
     }
     
+    function updateEditorDisplay() {
+        const lines = fullContent.split('\n');
+        
+        // Build a set of lines to hide
+        const hiddenLines = new Set();
+        
+        collapsedLines.forEach(parentIndex => {
+            const descendants = getAllDescendantIndicesFromLines(lines, parentIndex);
+            descendants.forEach(index => hiddenLines.add(index));
+        });
+        
+        // Render visible lines with indicators
+        const visibleLines = lines.map((line, index) => {
+            if (hiddenLines.has(index)) {
+                return null;
+            }
+            
+            // Check if this line has children
+            const children = getChildrenIndicesFromLines(lines, index);
+            if (children.length > 0) {
+                // Add indicator
+                const isCollapsed = collapsedLines.has(index);
+                const indicator = isCollapsed ? '▶ ' : '▼ ';
+                
+                // Get the indentation
+                let spaces = 0;
+                for (let i = 0; i < line.length; i++) {
+                    if (line[i] === ' ') {
+                        spaces++;
+                    } else {
+                        break;
+                    }
+                }
+                const indent = ' '.repeat(spaces);
+                const content = line.substring(spaces);
+                return indent + indicator + content;
+            }
+            
+            return line;
+        }).filter(line => line !== null);
+        
+        editor.textContent = visibleLines.join('\n');
+    }
+    
     function getLinesAndCurrentLineIndex() {
         const text = editor.textContent;
         const lines = text.split('\n');
@@ -324,12 +386,9 @@
         const newText = lines.join('\n');
         const cursorPos = getAbsoluteCursorPosition();
         fullContent = newText;
-        editor.textContent = newText;
         
-        // Reapply collapsed state
-        if (collapsedLines.size > 0) {
-            renderWithCollapsedState();
-        }
+        // Update display with indicators
+        updateEditorDisplay();
         
         setCursorPosition(cursorPos + 2);
     }
@@ -374,12 +433,9 @@
         const newText = lines.join('\n');
         const cursorPos = getAbsoluteCursorPosition();
         fullContent = newText;
-        editor.textContent = newText;
         
-        // Reapply collapsed state
-        if (collapsedLines.size > 0) {
-            renderWithCollapsedState();
-        }
+        // Update display with indicators
+        updateEditorDisplay();
         
         setCursorPosition(Math.max(0, cursorPos - spacesToRemove));
     }
@@ -441,12 +497,9 @@
         newLines.splice(insertAt, 0, ...movedLines);
         
         fullContent = newLines.join('\n');
-        editor.textContent = fullContent;
         
-        // Reapply collapsed state
-        if (collapsedLines.size > 0) {
-            renderWithCollapsedState();
-        }
+        // Update display with indicators
+        updateEditorDisplay();
         
         // Calculate new cursor position at the same offset within the moved line
         let newCursorPos = 0;
@@ -515,12 +568,9 @@
         newLines.splice(insertAt, 0, ...movedLines);
         
         fullContent = newLines.join('\n');
-        editor.textContent = fullContent;
         
-        // Reapply collapsed state
-        if (collapsedLines.size > 0) {
-            renderWithCollapsedState();
-        }
+        // Update display with indicators
+        updateEditorDisplay();
         
         // Calculate new cursor position at the same offset within the moved line
         let newCursorPos = 0;
@@ -533,18 +583,32 @@
     }
     
     function syncFullContent() {
-        // If we have collapsed lines, we need to reconstruct full content from current view
-        if (collapsedLines.size > 0) {
-            // Expand all temporarily to get full content
-            const savedCollapsed = new Set(collapsedLines);
-            collapsedLines.clear();
-            renderWithCollapsedState(); // This will show everything
-            fullContent = editor.textContent;
-            collapsedLines = savedCollapsed;
-            renderWithCollapsedState(); // Restore collapsed state
-        } else {
-            fullContent = editor.textContent;
-        }
+        // Get the current editor content and remove indicators
+        const currentText = editor.textContent;
+        const lines = currentText.split('\n');
+        
+        // Remove indicators from lines
+        const cleanedLines = lines.map(line => {
+            // Get indentation
+            let spaces = 0;
+            for (let i = 0; i < line.length; i++) {
+                if (line[i] === ' ') {
+                    spaces++;
+                } else {
+                    break;
+                }
+            }
+            const indent = ' '.repeat(spaces);
+            const rest = line.substring(spaces);
+            
+            // Remove indicator if present
+            if (rest.startsWith('▶ ') || rest.startsWith('▼ ')) {
+                return indent + rest.substring(2);
+            }
+            return line;
+        });
+        
+        fullContent = cleanedLines.join('\n');
     }
     
     function insertNewLineWithIndent() {
@@ -573,12 +637,9 @@
                        text.substring(lineInfo.cursor);
         
         fullContent = newText;
-        editor.textContent = newText;
         
-        // Reapply collapsed state
-        if (collapsedLines.size > 0) {
-            renderWithCollapsedState();
-        }
+        // Update display with indicators
+        updateEditorDisplay();
         
         setCursorPosition(lineInfo.cursor + 1 + spaces);
     }
@@ -614,7 +675,7 @@
             collapsedLines.add(lineKey);
         }
         
-        renderWithCollapsedState();
+        updateEditorDisplay();
         setCursorPosition(cursorPos);
     }
     
@@ -652,30 +713,8 @@
         }
         
         const cursorPos = getAbsoluteCursorPosition();
-        renderWithCollapsedState();
+        updateEditorDisplay();
         setCursorPosition(cursorPos);
-    }
-    
-    function renderWithCollapsedState() {
-        const lines = fullContent.split('\n');
-        
-        // Build a set of lines to hide
-        const hiddenLines = new Set();
-        
-        collapsedLines.forEach(parentIndex => {
-            const descendants = getAllDescendantIndicesFromLines(lines, parentIndex);
-            descendants.forEach(index => hiddenLines.add(index));
-        });
-        
-        // Render visible lines
-        const visibleLines = lines.map((line, index) => {
-            if (hiddenLines.has(index)) {
-                return null;
-            }
-            return line;
-        }).filter(line => line !== null);
-        
-        editor.textContent = visibleLines.join('\n');
     }
     
     function getAllDescendantIndicesFromLines(lines, parentIndex) {
