@@ -45,8 +45,15 @@ func main() {
 	authMux.HandleFunc("/", h.ListOutlines)
 	authMux.HandleFunc("/logout", h.Logout)
 	authMux.HandleFunc("/editor", h.ViewOutline)
+	authMux.HandleFunc("/templates", h.ListTemplates)
 	authMux.HandleFunc("/api/outline/save", h.SaveOutline)
 	authMux.HandleFunc("/api/outline/delete", h.DeleteOutline)
+	authMux.HandleFunc("/api/template/instantiate", h.InstantiateTemplate)
+	authMux.HandleFunc("/api/template/create", h.CreateTemplateFromOutline)
+	authMux.HandleFunc("/api/template/update", h.UpdateTemplate)
+	authMux.HandleFunc("/api/template/delete", h.DeleteTemplate)
+	authMux.HandleFunc("/api/template/export", h.ExportTemplate)
+	authMux.HandleFunc("/api/template/import", h.ImportTemplate)
 
 	// Admin routes
 	adminMux := http.NewServeMux()
@@ -59,7 +66,9 @@ func main() {
 	mux.Handle("/", middleware.AuthRequired(store)(authMux))
 	mux.Handle("/logout", middleware.AuthRequired(store)(authMux))
 	mux.Handle("/editor", middleware.AuthRequired(store)(authMux))
+	mux.Handle("/templates", middleware.AuthRequired(store)(authMux))
 	mux.Handle("/api/outline/", middleware.AuthRequired(store)(authMux))
+	mux.Handle("/api/template/", middleware.AuthRequired(store)(authMux))
 	mux.Handle("/admin", middleware.AdminRequired(store)(adminMux))
 	mux.Handle("/api/admin/", middleware.AdminRequired(store)(adminMux))
 
