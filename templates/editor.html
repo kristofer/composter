@@ -73,6 +73,8 @@
                 <ul>
                     <li><kbd>Tab</kbd> - Indent line (and all children)</li>
                     <li><kbd>Shift+Tab</kbd> - Unindent line (and all children)</li>
+                    <li><kbd>Alt+Up</kbd> - Move item up (with all children)</li>
+                    <li><kbd>Alt+Down</kbd> - Move item down (with all children)</li>
                     <li><kbd>Enter</kbd> - New line</li>
                     <li><kbd>Shift+Click</kbd> - Hide/Unhide children of clicked item</li>
                     <li><kbd>Ctrl+Shift+Click</kbd> - Collapse all / Expand all</li>
@@ -147,6 +149,16 @@
                 // Tab: Indent (with children)
                 indentCurrentLineWithChildren(range);
             }
+        }
+        // Alt+Up: Move item up (with children)
+        else if (e.altKey && e.key === 'ArrowUp') {
+            e.preventDefault();
+            moveCurrentLineUp();
+        }
+        // Alt+Down: Move item down (with children)
+        else if (e.altKey && e.key === 'ArrowDown') {
+            e.preventDefault();
+            moveCurrentLineDown();
         }
         // Ctrl/Cmd + S for save
         else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -370,6 +382,126 @@
         }
         
         setCursorPosition(Math.max(0, cursorPos - spacesToRemove));
+    }
+    
+    function moveCurrentLineUp() {
+        // Sync full content before modification
+        syncFullContent();
+        
+        const { lines, currentLineIndex } = getLinesAndCurrentLineIndex();
+        
+        // Can't move first line up
+        if (currentLineIndex === 0) return;
+        
+        // Get all descendants of current line
+        const descendants = getAllDescendantIndices(lines, currentLineIndex);
+        const linesToMove = [currentLineIndex, ...descendants];
+        const lastIndexToMove = Math.max(...linesToMove);
+        
+        // Find the target position (skip over the previous item and its descendants)
+        let targetIndex = currentLineIndex - 1;
+        
+        // If the previous line has the same or greater indent, we can move up
+        const currentIndent = getLineIndentLevel(lines[currentLineIndex]);
+        const prevIndent = getLineIndentLevel(lines[targetIndex]);
+        
+        // Can't move if it would break the tree structure (moving to lower indent level)
+        if (prevIndent > currentIndent) return;
+        
+        // If previous line has children, skip over them to find proper position
+        const prevDescendants = getAllDescendantIndices(lines, targetIndex);
+        if (prevDescendants.length > 0) {
+            targetIndex = targetIndex - prevDescendants.length - 1;
+            if (targetIndex < 0) return;
+        }
+        
+        // Extract the lines to move
+        const movedLines = linesToMove.map(i => lines[i]);
+        
+        // Remove from current position
+        const newLines = lines.filter((_, i) => !linesToMove.includes(i));
+        
+        // Calculate new position after removal
+        let insertAt = targetIndex;
+        for (let i = 0; i < linesToMove.length; i++) {
+            if (linesToMove[i] < targetIndex) {
+                insertAt--;
+            }
+        }
+        
+        // Insert at new position
+        newLines.splice(insertAt, 0, ...movedLines);
+        
+        const cursorPos = getAbsoluteCursorPosition();
+        fullContent = newLines.join('\n');
+        editor.textContent = fullContent;
+        
+        // Reapply collapsed state
+        if (collapsedLines.size > 0) {
+            renderWithCollapsedState();
+        }
+        
+        setCursorPosition(cursorPos);
+    }
+    
+    function moveCurrentLineDown() {
+        // Sync full content before modification
+        syncFullContent();
+        
+        const { lines, currentLineIndex } = getLinesAndCurrentLineIndex();
+        
+        // Get all descendants of current line
+        const descendants = getAllDescendantIndices(lines, currentLineIndex);
+        const linesToMove = [currentLineIndex, ...descendants];
+        const lastIndexToMove = Math.max(...linesToMove);
+        
+        // Can't move if we're at the end
+        if (lastIndexToMove >= lines.length - 1) return;
+        
+        // Find the next item (after current item and its descendants)
+        let nextIndex = lastIndexToMove + 1;
+        if (nextIndex >= lines.length) return;
+        
+        const currentIndent = getLineIndentLevel(lines[currentLineIndex]);
+        const nextIndent = getLineIndentLevel(lines[nextIndex]);
+        
+        // Can't move if it would break the tree structure
+        if (nextIndent > currentIndent) return;
+        
+        // Find where to insert (after next item and its descendants)
+        const nextDescendants = getAllDescendantIndices(lines, nextIndex);
+        let insertAfter = nextIndex;
+        if (nextDescendants.length > 0) {
+            insertAfter = Math.max(...nextDescendants);
+        }
+        
+        // Extract the lines to move
+        const movedLines = linesToMove.map(i => lines[i]);
+        
+        // Remove from current position
+        const newLines = lines.filter((_, i) => !linesToMove.includes(i));
+        
+        // Calculate new position after removal
+        let insertAt = insertAfter + 1;
+        for (let i = 0; i < linesToMove.length; i++) {
+            if (linesToMove[i] <= insertAfter) {
+                insertAt--;
+            }
+        }
+        
+        // Insert at new position
+        newLines.splice(insertAt, 0, ...movedLines);
+        
+        const cursorPos = getAbsoluteCursorPosition();
+        fullContent = newLines.join('\n');
+        editor.textContent = fullContent;
+        
+        // Reapply collapsed state
+        if (collapsedLines.size > 0) {
+            renderWithCollapsedState();
+        }
+        
+        setCursorPosition(cursorPos);
     }
     
     function syncFullContent() {
