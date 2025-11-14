@@ -393,6 +393,14 @@
         // Can't move first line up
         if (currentLineIndex === 0) return;
         
+        // Calculate cursor offset within the current line before moving
+        const cursorPos = getAbsoluteCursorPosition();
+        let charCount = 0;
+        for (let i = 0; i < currentLineIndex; i++) {
+            charCount += lines[i].length + 1; // +1 for newline
+        }
+        const cursorOffsetInLine = cursorPos - charCount;
+        
         // Get all descendants of current line
         const descendants = getAllDescendantIndices(lines, currentLineIndex);
         const linesToMove = [currentLineIndex, ...descendants];
@@ -432,7 +440,6 @@
         // Insert at new position
         newLines.splice(insertAt, 0, ...movedLines);
         
-        const cursorPos = getAbsoluteCursorPosition();
         fullContent = newLines.join('\n');
         editor.textContent = fullContent;
         
@@ -441,7 +448,14 @@
             renderWithCollapsedState();
         }
         
-        setCursorPosition(cursorPos);
+        // Calculate new cursor position at the same offset within the moved line
+        let newCursorPos = 0;
+        for (let i = 0; i < insertAt; i++) {
+            newCursorPos += newLines[i].length + 1; // +1 for newline
+        }
+        newCursorPos += cursorOffsetInLine;
+        
+        setCursorPosition(newCursorPos);
     }
     
     function moveCurrentLineDown() {
@@ -449,6 +463,14 @@
         syncFullContent();
         
         const { lines, currentLineIndex } = getLinesAndCurrentLineIndex();
+        
+        // Calculate cursor offset within the current line before moving
+        const cursorPos = getAbsoluteCursorPosition();
+        let charCount = 0;
+        for (let i = 0; i < currentLineIndex; i++) {
+            charCount += lines[i].length + 1; // +1 for newline
+        }
+        const cursorOffsetInLine = cursorPos - charCount;
         
         // Get all descendants of current line
         const descendants = getAllDescendantIndices(lines, currentLineIndex);
@@ -492,7 +514,6 @@
         // Insert at new position
         newLines.splice(insertAt, 0, ...movedLines);
         
-        const cursorPos = getAbsoluteCursorPosition();
         fullContent = newLines.join('\n');
         editor.textContent = fullContent;
         
@@ -501,7 +522,14 @@
             renderWithCollapsedState();
         }
         
-        setCursorPosition(cursorPos);
+        // Calculate new cursor position at the same offset within the moved line
+        let newCursorPos = 0;
+        for (let i = 0; i < insertAt; i++) {
+            newCursorPos += newLines[i].length + 1; // +1 for newline
+        }
+        newCursorPos += cursorOffsetInLine;
+        
+        setCursorPosition(newCursorPos);
     }
     
     function syncFullContent() {
