@@ -375,7 +375,22 @@
         // First, ensure we're working with full content
         syncFullContent();
         
-        const { lines, currentLineIndex } = getLinesAndCurrentLineIndex();
+        // Work with fullContent (not editor.textContent which may still have indicators)
+        const lines = fullContent.split('\n');
+        const cursorPos = getAbsoluteCursorPosition();
+        
+        // Find current line index in fullContent
+        let currentLineIndex = 0;
+        let charCount = 0;
+        for (let i = 0; i < lines.length; i++) {
+            charCount += lines[i].length;
+            if (i < lines.length - 1) charCount++; // Add newline
+            if (cursorPos < charCount || (cursorPos === charCount && i === lines.length - 1)) {
+                currentLineIndex = i;
+                break;
+            }
+        }
+        
         const descendants = getAllDescendantIndices(lines, currentLineIndex);
         
         // Indent current line and all descendants
@@ -385,7 +400,6 @@
         });
         
         const newText = lines.join('\n');
-        const cursorPos = getAbsoluteCursorPosition();
         fullContent = newText;
         
         // Update display with indicators
@@ -398,7 +412,22 @@
         // First, ensure we're working with full content
         syncFullContent();
         
-        const { lines, currentLineIndex } = getLinesAndCurrentLineIndex();
+        // Work with fullContent (not editor.textContent which may still have indicators)
+        const lines = fullContent.split('\n');
+        const cursorPos = getAbsoluteCursorPosition();
+        
+        // Find current line index in fullContent
+        let currentLineIndex = 0;
+        let charCount = 0;
+        for (let i = 0; i < lines.length; i++) {
+            charCount += lines[i].length;
+            if (i < lines.length - 1) charCount++; // Add newline
+            if (cursorPos < charCount || (cursorPos === charCount && i === lines.length - 1)) {
+                currentLineIndex = i;
+                break;
+            }
+        }
+        
         const currentLine = lines[currentLineIndex];
         
         // Check if current line has indent to remove
@@ -432,7 +461,6 @@
         });
         
         const newText = lines.join('\n');
-        const cursorPos = getAbsoluteCursorPosition();
         fullContent = newText;
         
         // Update display with indicators
@@ -445,14 +473,27 @@
         // Sync full content before modification
         syncFullContent();
         
-        const { lines, currentLineIndex } = getLinesAndCurrentLineIndex();
+        // Work with fullContent (not editor.textContent which may still have indicators)
+        const lines = fullContent.split('\n');
+        const cursorPos = getAbsoluteCursorPosition();
+        
+        // Find current line index in fullContent
+        let currentLineIndex = 0;
+        let charCount = 0;
+        for (let i = 0; i < lines.length; i++) {
+            charCount += lines[i].length;
+            if (i < lines.length - 1) charCount++; // Add newline
+            if (cursorPos < charCount || (cursorPos === charCount && i === lines.length - 1)) {
+                currentLineIndex = i;
+                break;
+            }
+        }
         
         // Can't move first line up
         if (currentLineIndex === 0) return;
         
         // Calculate cursor offset within the current line before moving
-        const cursorPos = getAbsoluteCursorPosition();
-        let charCount = 0;
+        charCount = 0;
         for (let i = 0; i < currentLineIndex; i++) {
             charCount += lines[i].length + 1; // +1 for newline
         }
@@ -516,11 +557,24 @@
         // Sync full content before modification
         syncFullContent();
         
-        const { lines, currentLineIndex } = getLinesAndCurrentLineIndex();
+        // Work with fullContent (not editor.textContent which may still have indicators)
+        const lines = fullContent.split('\n');
+        const cursorPos = getAbsoluteCursorPosition();
+        
+        // Find current line index in fullContent
+        let currentLineIndex = 0;
+        let charCount = 0;
+        for (let i = 0; i < lines.length; i++) {
+            charCount += lines[i].length;
+            if (i < lines.length - 1) charCount++; // Add newline
+            if (cursorPos < charCount || (cursorPos === charCount && i === lines.length - 1)) {
+                currentLineIndex = i;
+                break;
+            }
+        }
         
         // Calculate cursor offset within the current line before moving
-        const cursorPos = getAbsoluteCursorPosition();
-        let charCount = 0;
+        charCount = 0;
         for (let i = 0; i < currentLineIndex; i++) {
             charCount += lines[i].length + 1; // +1 for newline
         }
@@ -600,13 +654,14 @@
                 }
             }
             const indent = ' '.repeat(spaces);
-            const rest = line.substring(spaces);
+            let rest = line.substring(spaces);
             
-            // Remove indicator if present
-            if (rest.startsWith('▶ ') || rest.startsWith('▼ ')) {
-                return indent + rest.substring(2);
+            // Remove all leading indicators (handle multiple indicators)
+            while (rest.startsWith('▶ ') || rest.startsWith('▼ ')) {
+                rest = rest.substring(2);
             }
-            return line;
+            
+            return indent + rest;
         });
         
         fullContent = cleanedLines.join('\n');
@@ -615,13 +670,25 @@
     function insertNewLineWithIndent() {
         syncFullContent(); // Sync before modification
         
-        const lineInfo = getLineAtCursor();
-        if (!lineInfo) return;
+        // Work with fullContent
+        const cursorPos = getAbsoluteCursorPosition();
+        const lines = fullContent.split('\n');
         
-        const text = editor.textContent;
-        const lineText = text.substring(lineInfo.start, lineInfo.end);
+        // Find which line cursor is on
+        let lineStartPos = 0;
+        let currentLineIndex = 0;
+        for (let i = 0; i < lines.length; i++) {
+            const lineEndPos = lineStartPos + lines[i].length;
+            if (cursorPos <= lineEndPos || i === lines.length - 1) {
+                currentLineIndex = i;
+                break;
+            }
+            lineStartPos = lineEndPos + 1; // +1 for newline
+        }
         
-        // Count leading spaces
+        const lineText = lines[currentLineIndex];
+        
+        // Count leading spaces in current line
         let spaces = 0;
         for (let i = 0; i < lineText.length; i++) {
             if (lineText[i] === ' ') {
@@ -633,16 +700,16 @@
         
         // Insert newline with same indentation
         const indent = ' '.repeat(spaces);
-        const newText = text.substring(0, lineInfo.cursor) + 
+        const newText = fullContent.substring(0, cursorPos) + 
                        '\n' + indent + 
-                       text.substring(lineInfo.cursor);
+                       fullContent.substring(cursorPos);
         
         fullContent = newText;
         
         // Update display with indicators
         updateEditorDisplay();
         
-        setCursorPosition(lineInfo.cursor + 1 + spaces);
+        setCursorPosition(cursorPos + 1 + spaces);
     }
     
     function toggleChildren(e) {
