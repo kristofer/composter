@@ -382,17 +382,6 @@ func (db *DB) DeleteTemplate(id, userID int) error {
 
 // SeedSystemTemplates populates the database with pre-built system templates
 func (db *DB) SeedSystemTemplates() error {
-	// Check if system templates already exist
-	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM templates WHERE is_system = 1").Scan(&count)
-	if err != nil {
-		return err
-	}
-
-	if count > 0 {
-		return nil // Templates already seeded
-	}
-
 	templates := []struct {
 		name        string
 		description string
@@ -953,7 +942,19 @@ func (db *DB) SeedSystemTemplates() error {
 	}
 
 	for _, tmpl := range templates {
-		_, err := db.CreateTemplate(tmpl.name, tmpl.description, tmpl.content, tmpl.category, true, 0)
+		// Check if template already exists
+		var count int
+		err := db.QueryRow("SELECT COUNT(*) FROM templates WHERE name = ? AND is_system = 1", tmpl.name).Scan(&count)
+		if err != nil {
+			return fmt.Errorf("failed to check template %s: %w", tmpl.name, err)
+		}
+		
+		if count > 0 {
+			// Template already exists, skip it
+			continue
+		}
+		
+		_, err = db.CreateTemplate(tmpl.name, tmpl.description, tmpl.content, tmpl.category, true, 0)
 		if err != nil {
 			return fmt.Errorf("failed to seed template %s: %w", tmpl.name, err)
 		}
