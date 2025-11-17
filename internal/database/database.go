@@ -51,6 +51,7 @@ const (
 	CategoryFeature      = "Feature"
 	CategoryBugFix       = "BugFix"
 	CategoryGeneral      = "General"
+	CategoryBeginner     = "Beginner"
 )
 
 func New(dataSourceName string) (*DB, error) {
@@ -637,6 +638,317 @@ func (db *DB) SeedSystemTemplates() error {
 <div style="margin-left: 60px">Update issue tracker</div>
 <div style="margin-left: 60px">Document root cause</div>
 <div style="margin-left: 60px">Update documentation if needed</div>`,
+		},
+		{
+			name:        "Word Guess Game",
+			description: "Terminal-based word guessing game project structure",
+			category:    CategoryBeginner,
+			content: `<div>Project: Word Guess Game</div>
+<div style="margin-left: 30px">Setup</div>
+<div style="margin-left: 60px">Initialize project</div>
+<div style="margin-left: 60px">Choose programming language</div>
+<div style="margin-left: 60px">Set up development environment</div>
+<div style="margin-left: 30px">Core Features</div>
+<div style="margin-left: 60px">Word list management</div>
+<div style="margin-left: 90px">Load words from file or array</div>
+<div style="margin-left: 90px">Select random word</div>
+<div style="margin-left: 60px">Game state</div>
+<div style="margin-left: 90px">Track guessed letters</div>
+<div style="margin-left: 90px">Track remaining attempts</div>
+<div style="margin-left: 90px">Display masked word (e.g., _ _ _ _)</div>
+<div style="margin-left: 60px">User input</div>
+<div style="margin-left: 90px">Read letter from terminal</div>
+<div style="margin-left: 90px">Validate input (single letter)</div>
+<div style="margin-left: 90px">Check if already guessed</div>
+<div style="margin-left: 60px">Game logic</div>
+<div style="margin-left: 90px">Check if letter is in word</div>
+<div style="margin-left: 90px">Update display</div>
+<div style="margin-left: 90px">Decrease attempts if wrong</div>
+<div style="margin-left: 90px">Check win/lose conditions</div>
+<div style="margin-left: 30px">Display</div>
+<div style="margin-left: 60px">Show current word state</div>
+<div style="margin-left: 60px">Show guessed letters</div>
+<div style="margin-left: 60px">Show remaining attempts</div>
+<div style="margin-left: 60px">Draw hangman figure (optional)</div>
+<div style="margin-left: 30px">Game Loop</div>
+<div style="margin-left: 60px">Initialize game</div>
+<div style="margin-left: 60px">Loop until win or lose</div>
+<div style="margin-left: 60px">Display end message</div>
+<div style="margin-left: 60px">Ask to play again</div>
+<div style="margin-left: 30px">Testing</div>
+<div style="margin-left: 60px">Test word selection</div>
+<div style="margin-left: 60px">Test input validation</div>
+<div style="margin-left: 60px">Test game logic</div>
+<div style="margin-left: 60px">Play through complete game</div>`,
+		},
+		{
+			name:        "CLI Text Processor",
+			description: "Command-line tool for processing text files",
+			category:    CategoryBeginner,
+			content: `<div>Project: CLI Text Processor</div>
+<div style="margin-left: 30px">Setup</div>
+<div style="margin-left: 60px">Initialize project</div>
+<div style="margin-left: 60px">Set up argument parsing library</div>
+<div style="margin-left: 60px">Create project structure</div>
+<div style="margin-left: 30px">Command-Line Interface</div>
+<div style="margin-left: 60px">Define flags and options</div>
+<div style="margin-left: 90px">--input/-i: input file path</div>
+<div style="margin-left: 90px">--output/-o: output file path</div>
+<div style="margin-left: 90px">--operation: type of processing</div>
+<div style="margin-left: 60px">Parse arguments</div>
+<div style="margin-left: 60px">Validate input parameters</div>
+<div style="margin-left: 60px">Display help message</div>
+<div style="margin-left: 30px">File Operations</div>
+<div style="margin-left: 60px">Read input file</div>
+<div style="margin-left: 90px">Handle file not found</div>
+<div style="margin-left: 90px">Handle read errors</div>
+<div style="margin-left: 60px">Write output file</div>
+<div style="margin-left: 90px">Handle write errors</div>
+<div style="margin-left: 90px">Create parent directories if needed</div>
+<div style="margin-left: 30px">Text Processing Functions</div>
+<div style="margin-left: 60px">Word count</div>
+<div style="margin-left: 90px">Count total words</div>
+<div style="margin-left: 90px">Count unique words</div>
+<div style="margin-left: 60px">Find and replace</div>
+<div style="margin-left: 90px">Simple text replacement</div>
+<div style="margin-left: 90px">Regex-based replacement</div>
+<div style="margin-left: 60px">Case conversion</div>
+<div style="margin-left: 90px">Uppercase</div>
+<div style="margin-left: 90px">Lowercase</div>
+<div style="margin-left: 90px">Title case</div>
+<div style="margin-left: 60px">Remove duplicates</div>
+<div style="margin-left: 90px">Remove duplicate lines</div>
+<div style="margin-left: 90px">Preserve order</div>
+<div style="margin-left: 60px">Sort lines</div>
+<div style="margin-left: 90px">Alphabetically</div>
+<div style="margin-left: 90px">Numerically</div>
+<div style="margin-left: 90px">Reverse order</div>
+<div style="margin-left: 30px">Output Formatting</div>
+<div style="margin-left: 60px">Display results to stdout</div>
+<div style="margin-left: 60px">Write to file</div>
+<div style="margin-left: 60px">Show statistics</div>
+<div style="margin-left: 30px">Error Handling</div>
+<div style="margin-left: 60px">Invalid file paths</div>
+<div style="margin-left: 60px">Permission errors</div>
+<div style="margin-left: 60px">Invalid operations</div>
+<div style="margin-left: 60px">Provide helpful error messages</div>
+<div style="margin-left: 30px">Testing</div>
+<div style="margin-left: 60px">Test each processing function</div>
+<div style="margin-left: 60px">Test CLI argument parsing</div>
+<div style="margin-left: 60px">Test file I/O operations</div>
+<div style="margin-left: 60px">Test error handling</div>`,
+		},
+		{
+			name:        "Command-Line Notes App",
+			description: "Simple note-taking application for the terminal",
+			category:    CategoryBeginner,
+			content: `<div>Project: Command-Line Notes</div>
+<div style="margin-left: 30px">Setup</div>
+<div style="margin-left: 60px">Initialize project</div>
+<div style="margin-left: 60px">Choose data storage format (JSON, SQLite, etc.)</div>
+<div style="margin-left: 60px">Set up project structure</div>
+<div style="margin-left: 30px">Data Model</div>
+<div style="margin-left: 60px">Note structure</div>
+<div style="margin-left: 90px">ID (unique identifier)</div>
+<div style="margin-left: 90px">Title</div>
+<div style="margin-left: 90px">Content/body</div>
+<div style="margin-left: 90px">Created timestamp</div>
+<div style="margin-left: 90px">Modified timestamp</div>
+<div style="margin-left: 90px">Tags (optional)</div>
+<div style="margin-left: 30px">Commands</div>
+<div style="margin-left: 60px">add - Create new note</div>
+<div style="margin-left: 90px">Prompt for title</div>
+<div style="margin-left: 90px">Prompt for content (multiline)</div>
+<div style="margin-left: 90px">Save note</div>
+<div style="margin-left: 60px">list - Display all notes</div>
+<div style="margin-left: 90px">Show ID, title, date</div>
+<div style="margin-left: 90px">Format as table</div>
+<div style="margin-left: 60px">view - Show note details</div>
+<div style="margin-left: 90px">Accept note ID</div>
+<div style="margin-left: 90px">Display full content</div>
+<div style="margin-left: 60px">edit - Modify existing note</div>
+<div style="margin-left: 90px">Find note by ID</div>
+<div style="margin-left: 90px">Edit title and/or content</div>
+<div style="margin-left: 90px">Update modified timestamp</div>
+<div style="margin-left: 60px">delete - Remove note</div>
+<div style="margin-left: 90px">Accept note ID</div>
+<div style="margin-left: 90px">Confirm deletion</div>
+<div style="margin-left: 60px">search - Find notes</div>
+<div style="margin-left: 90px">Search by title</div>
+<div style="margin-left: 90px">Search by content</div>
+<div style="margin-left: 90px">Search by tag (if implemented)</div>
+<div style="margin-left: 30px">Storage</div>
+<div style="margin-left: 60px">Load notes from storage</div>
+<div style="margin-left: 60px">Save notes to storage</div>
+<div style="margin-left: 60px">Handle storage errors</div>
+<div style="margin-left: 60px">Data persistence</div>
+<div style="margin-left: 30px">User Interface</div>
+<div style="margin-left: 60px">Command menu</div>
+<div style="margin-left: 60px">Input prompts</div>
+<div style="margin-left: 60px">Display formatting</div>
+<div style="margin-left: 60px">Error messages</div>
+<div style="margin-left: 30px">Features (Optional)</div>
+<div style="margin-left: 60px">Tag support</div>
+<div style="margin-left: 60px">Export notes</div>
+<div style="margin-left: 60px">Import notes</div>
+<div style="margin-left: 60px">Note categories</div>
+<div style="margin-left: 30px">Testing</div>
+<div style="margin-left: 60px">Test CRUD operations</div>
+<div style="margin-left: 60px">Test search functionality</div>
+<div style="margin-left: 60px">Test data persistence</div>
+<div style="margin-left: 60px">Test edge cases</div>`,
+		},
+		{
+			name:        "Text-Based Dungeon Game",
+			description: "Interactive dungeon exploration game for the terminal",
+			category:    CategoryBeginner,
+			content: `<div>Project: Text Dungeon Game</div>
+<div style="margin-left: 30px">Setup</div>
+<div style="margin-left: 60px">Initialize project</div>
+<div style="margin-left: 60px">Choose programming language</div>
+<div style="margin-left: 60px">Set up game structure</div>
+<div style="margin-left: 30px">Game Data Models</div>
+<div style="margin-left: 60px">Player</div>
+<div style="margin-left: 90px">Health points</div>
+<div style="margin-left: 90px">Inventory</div>
+<div style="margin-left: 90px">Current location</div>
+<div style="margin-left: 90px">Stats (strength, defense, etc.)</div>
+<div style="margin-left: 60px">Room</div>
+<div style="margin-left: 90px">Description</div>
+<div style="margin-left: 90px">Connected rooms (north, south, east, west)</div>
+<div style="margin-left: 90px">Items in room</div>
+<div style="margin-left: 90px">Monsters in room</div>
+<div style="margin-left: 60px">Item</div>
+<div style="margin-left: 90px">Name</div>
+<div style="margin-left: 90px">Description</div>
+<div style="margin-left: 90px">Type (weapon, potion, key, etc.)</div>
+<div style="margin-left: 90px">Properties (damage, healing, etc.)</div>
+<div style="margin-left: 60px">Monster</div>
+<div style="margin-left: 90px">Name</div>
+<div style="margin-left: 90px">Health</div>
+<div style="margin-left: 90px">Attack damage</div>
+<div style="margin-left: 90px">Loot drops</div>
+<div style="margin-left: 30px">Game World</div>
+<div style="margin-left: 60px">Create dungeon layout</div>
+<div style="margin-left: 60px">Define rooms and connections</div>
+<div style="margin-left: 60px">Place items</div>
+<div style="margin-left: 60px">Place monsters</div>
+<div style="margin-left: 60px">Set win condition</div>
+<div style="margin-left: 30px">Commands</div>
+<div style="margin-left: 60px">Movement (go north/south/east/west)</div>
+<div style="margin-left: 60px">Look (examine room)</div>
+<div style="margin-left: 60px">Inventory (check items)</div>
+<div style="margin-left: 60px">Take (pick up item)</div>
+<div style="margin-left: 60px">Use (use item)</div>
+<div style="margin-left: 60px">Attack (fight monster)</div>
+<div style="margin-left: 60px">Help (show commands)</div>
+<div style="margin-left: 60px">Quit (exit game)</div>
+<div style="margin-left: 30px">Game Mechanics</div>
+<div style="margin-left: 60px">Movement between rooms</div>
+<div style="margin-left: 60px">Item interaction</div>
+<div style="margin-left: 90px">Pick up items</div>
+<div style="margin-left: 90px">Use items (potions, keys)</div>
+<div style="margin-left: 90px">Equip weapons</div>
+<div style="margin-left: 60px">Combat system</div>
+<div style="margin-left: 90px">Turn-based fighting</div>
+<div style="margin-left: 90px">Damage calculation</div>
+<div style="margin-left: 90px">Monster AI (basic)</div>
+<div style="margin-left: 90px">Death handling</div>
+<div style="margin-left: 60px">Puzzle elements (locked doors, keys)</div>
+<div style="margin-left: 30px">User Interface</div>
+<div style="margin-left: 60px">Display room description</div>
+<div style="margin-left: 60px">Show available exits</div>
+<div style="margin-left: 60px">Show player status (health, inventory)</div>
+<div style="margin-left: 60px">Parse user commands</div>
+<div style="margin-left: 60px">Provide feedback messages</div>
+<div style="margin-left: 30px">Game Loop</div>
+<div style="margin-left: 60px">Initialize game state</div>
+<div style="margin-left: 60px">Display current situation</div>
+<div style="margin-left: 60px">Get player input</div>
+<div style="margin-left: 60px">Process command</div>
+<div style="margin-left: 60px">Update game state</div>
+<div style="margin-left: 60px">Check win/lose conditions</div>
+<div style="margin-left: 30px">Testing</div>
+<div style="margin-left: 60px">Test movement system</div>
+<div style="margin-left: 60px">Test combat mechanics</div>
+<div style="margin-left: 60px">Test item interactions</div>
+<div style="margin-left: 60px">Playtest complete game</div>`,
+		},
+		{
+			name:        "LLM Chat Terminal",
+			description: "Terminal-based chat interface with LLM API",
+			category:    CategoryBeginner,
+			content: `<div>Project: LLM Chat Terminal</div>
+<div style="margin-left: 30px">Setup</div>
+<div style="margin-left: 60px">Initialize project</div>
+<div style="margin-left: 60px">Choose LLM API (OpenAI, Anthropic, etc.)</div>
+<div style="margin-left: 60px">Install HTTP client library</div>
+<div style="margin-left: 60px">Set up environment variables</div>
+<div style="margin-left: 30px">Configuration</div>
+<div style="margin-left: 60px">API key management</div>
+<div style="margin-left: 90px">Load from environment variable</div>
+<div style="margin-left: 90px">Load from config file</div>
+<div style="margin-left: 90px">Secure storage</div>
+<div style="margin-left: 60px">API settings</div>
+<div style="margin-left: 90px">Model selection</div>
+<div style="margin-left: 90px">Temperature setting</div>
+<div style="margin-left: 90px">Max tokens</div>
+<div style="margin-left: 90px">Other parameters</div>
+<div style="margin-left: 30px">API Integration</div>
+<div style="margin-left: 60px">Build API request</div>
+<div style="margin-left: 90px">Format message payload</div>
+<div style="margin-left: 90px">Set headers (authorization, content-type)</div>
+<div style="margin-left: 90px">Handle conversation history</div>
+<div style="margin-left: 60px">Send HTTP request</div>
+<div style="margin-left: 90px">POST to API endpoint</div>
+<div style="margin-left: 90px">Handle timeout</div>
+<div style="margin-left: 60px">Parse API response</div>
+<div style="margin-left: 90px">Extract message content</div>
+<div style="margin-left: 90px">Handle errors</div>
+<div style="margin-left: 90px">Parse JSON response</div>
+<div style="margin-left: 30px">Conversation Management</div>
+<div style="margin-left: 60px">Message history</div>
+<div style="margin-left: 90px">Store user messages</div>
+<div style="margin-left: 90px">Store assistant responses</div>
+<div style="margin-left: 90px">Maintain context window</div>
+<div style="margin-left: 60px">Session handling</div>
+<div style="margin-left: 90px">Start new conversation</div>
+<div style="margin-left: 90px">Continue existing conversation</div>
+<div style="margin-left: 90px">Save conversation to file</div>
+<div style="margin-left: 90px">Load conversation from file</div>
+<div style="margin-left: 30px">User Interface</div>
+<div style="margin-left: 60px">Display welcome message</div>
+<div style="margin-left: 60px">Show prompt for user input</div>
+<div style="margin-left: 60px">Display messages</div>
+<div style="margin-left: 90px">Format user messages</div>
+<div style="margin-left: 90px">Format assistant messages</div>
+<div style="margin-left: 90px">Add visual distinction</div>
+<div style="margin-left: 60px">Show loading indicator</div>
+<div style="margin-left: 60px">Command handling</div>
+<div style="margin-left: 90px">/help - show commands</div>
+<div style="margin-left: 90px">/new - start new conversation</div>
+<div style="margin-left: 90px">/save - save conversation</div>
+<div style="margin-left: 90px">/load - load conversation</div>
+<div style="margin-left: 90px">/quit - exit application</div>
+<div style="margin-left: 30px">Error Handling</div>
+<div style="margin-left: 60px">API errors</div>
+<div style="margin-left: 90px">Invalid API key</div>
+<div style="margin-left: 90px">Rate limiting</div>
+<div style="margin-left: 90px">Network errors</div>
+<div style="margin-left: 60px">Input validation</div>
+<div style="margin-left: 60px">Handle empty messages</div>
+<div style="margin-left: 60px">Provide user-friendly error messages</div>
+<div style="margin-left: 30px">Features (Optional)</div>
+<div style="margin-left: 60px">Streaming responses</div>
+<div style="margin-left: 60px">Multiple conversations</div>
+<div style="margin-left: 60px">System prompts/personas</div>
+<div style="margin-left: 60px">Token usage tracking</div>
+<div style="margin-left: 60px">Cost estimation</div>
+<div style="margin-left: 30px">Testing</div>
+<div style="margin-left: 60px">Test API integration (with mock)</div>
+<div style="margin-left: 60px">Test conversation history</div>
+<div style="margin-left: 60px">Test command parsing</div>
+<div style="margin-left: 60px">Manual testing with real API</div>`,
 		},
 	}
 

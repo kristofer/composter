@@ -312,3 +312,62 @@ func TestGetUserOutlines(t *testing.T) {
 		t.Error("Expected to find 'Outline 2'")
 	}
 }
+
+func TestBeginnerTemplatesSeeded(t *testing.T) {
+	dbPath := "/tmp/test_composter_beginner_templates.db"
+	defer os.Remove(dbPath)
+
+	db, err := New(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.Init(); err != nil {
+		t.Fatalf("Failed to initialize database: %v", err)
+	}
+
+	// Get all system templates
+	templates, err := db.GetSystemTemplates()
+	if err != nil {
+		t.Fatalf("Failed to get system templates: %v", err)
+	}
+
+	// Should have original 6 templates + 5 new beginner templates = 11 total
+	if len(templates) != 11 {
+		t.Errorf("Expected 11 system templates, got %d", len(templates))
+	}
+
+	// Check for beginner templates
+	beginnerTemplates := []string{
+		"Word Guess Game",
+		"CLI Text Processor",
+		"Command-Line Notes App",
+		"Text-Based Dungeon Game",
+		"LLM Chat Terminal",
+	}
+
+	templateNames := make(map[string]bool)
+	for _, tmpl := range templates {
+		templateNames[tmpl.Name] = true
+	}
+
+	for _, name := range beginnerTemplates {
+		if !templateNames[name] {
+			t.Errorf("Expected to find beginner template '%s'", name)
+		}
+	}
+
+	// Verify beginner category exists in templates
+	beginnerCategoryFound := false
+	for _, tmpl := range templates {
+		if tmpl.Category == CategoryBeginner {
+			beginnerCategoryFound = true
+			break
+		}
+	}
+
+	if !beginnerCategoryFound {
+		t.Error("Expected to find at least one template with CategoryBeginner")
+	}
+}
