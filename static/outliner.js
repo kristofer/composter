@@ -39,6 +39,23 @@ class OutlineManager {
 
         // Keyboard shortcuts
         this.editor.addEventListener('keydown', (e) => this.handleKeyDown(e));
+        
+        // Global keyboard shortcuts (for help overlay)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                // Only show help if not typing in an input/textarea
+                if (e.target.contentEditable !== 'true' && 
+                    e.target.tagName !== 'INPUT' && 
+                    e.target.tagName !== 'TEXTAREA') {
+                    return;
+                }
+                e.preventDefault();
+                this.toggleHelpOverlay();
+            }
+            if (e.key === 'Escape') {
+                this.hideHelpOverlay();
+            }
+        });
     }
 
     handleKeyDown(e) {
@@ -318,10 +335,127 @@ class OutlineManager {
     showMessage(text, type = 'success') {
         const msg = document.createElement('div');
         msg.textContent = text;
-        const bgColor = type === 'success' ? '#2ecc71' : '#e74c3c';
-        msg.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${bgColor}; color: white; padding: 10px 20px; border-radius: 4px; z-index: 1000; animation: slideIn 0.3s;`;
+        msg.className = `toast-notification ${type}`;
         document.body.appendChild(msg);
-        setTimeout(() => msg.remove(), 2000);
+        
+        setTimeout(() => {
+            msg.style.animation = 'slideOutRight 0.3s ease-out';
+            setTimeout(() => msg.remove(), 300);
+        }, 1700);
+    }
+
+    /**
+     * Toggle keyboard shortcut help overlay
+     */
+    toggleHelpOverlay() {
+        const existing = document.getElementById('shortcut-help');
+        if (existing) {
+            this.hideHelpOverlay();
+        } else {
+            this.showHelpOverlay();
+        }
+    }
+
+    /**
+     * Show keyboard shortcut help overlay
+     */
+    showHelpOverlay() {
+        const overlay = document.createElement('div');
+        overlay.id = 'shortcut-help';
+        overlay.className = 'shortcut-help-overlay';
+        
+        overlay.innerHTML = `
+            <div class="shortcut-help-content">
+                <h2>⌨️ Keyboard Shortcuts</h2>
+                
+                <h3>Outlining</h3>
+                <ul class="shortcut-list">
+                    <li class="shortcut-item">
+                        <span>Indent line (with children)</span>
+                        <div class="shortcut-keys"><kbd>Tab</kbd></div>
+                    </li>
+                    <li class="shortcut-item">
+                        <span>Unindent line (with children)</span>
+                        <div class="shortcut-keys"><kbd>Shift</kbd> + <kbd>Tab</kbd></div>
+                    </li>
+                    <li class="shortcut-item">
+                        <span>Move item up (with children)</span>
+                        <div class="shortcut-keys"><kbd>Alt</kbd> + <kbd>↑</kbd></div>
+                    </li>
+                    <li class="shortcut-item">
+                        <span>Move item down (with children)</span>
+                        <div class="shortcut-keys"><kbd>Alt</kbd> + <kbd>↓</kbd></div>
+                    </li>
+                    <li class="shortcut-item">
+                        <span>New line (same indent)</span>
+                        <div class="shortcut-keys"><kbd>Enter</kbd></div>
+                    </li>
+                </ul>
+                
+                <h3>View Control</h3>
+                <ul class="shortcut-list">
+                    <li class="shortcut-item">
+                        <span>Collapse/expand children</span>
+                        <div class="shortcut-keys"><kbd>Shift</kbd> + <kbd>Click</kbd></div>
+                    </li>
+                    <li class="shortcut-item">
+                        <span>Collapse/expand all</span>
+                        <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Click</kbd></div>
+                    </li>
+                </ul>
+                
+                <h3>Document</h3>
+                <ul class="shortcut-list">
+                    <li class="shortcut-item">
+                        <span>Save outline</span>
+                        <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>S</kbd></div>
+                    </li>
+                    <li class="shortcut-item">
+                        <span>Undo</span>
+                        <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>Z</kbd></div>
+                    </li>
+                    <li class="shortcut-item">
+                        <span>Redo</span>
+                        <div class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>Y</kbd></div>
+                    </li>
+                </ul>
+                
+                <h3>Help</h3>
+                <ul class="shortcut-list">
+                    <li class="shortcut-item">
+                        <span>Show/hide this help</span>
+                        <div class="shortcut-keys"><kbd>?</kbd></div>
+                    </li>
+                    <li class="shortcut-item">
+                        <span>Close this help</span>
+                        <div class="shortcut-keys"><kbd>Esc</kbd></div>
+                    </li>
+                </ul>
+                
+                <button class="close-help" onclick="document.getElementById('shortcut-help').remove()">
+                    Close (or press Esc)
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Close on overlay click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                this.hideHelpOverlay();
+            }
+        });
+    }
+
+    /**
+     * Hide keyboard shortcut help overlay
+     */
+    hideHelpOverlay() {
+        const overlay = document.getElementById('shortcut-help');
+        if (overlay) {
+            overlay.remove();
+        }
     }
 
     // ========== Outline Manipulation Methods ==========
@@ -756,7 +890,8 @@ function initializeOutliner() {
     if (editor && titleInput) {
         const manager = new OutlineManager(editor, titleInput, outlineId);
         
-        // Expose save functions globally for button clicks
+        // Expose globally for button clicks and help
+        window.outlinerManager = manager;
         window.saveOutline = (shouldClose) => manager.save(shouldClose);
         window.saveAsTemplate = () => manager.saveAsTemplate();
         
