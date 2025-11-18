@@ -476,6 +476,49 @@ header h1 {
     box-shadow: 0 6px 16px rgba(52, 152, 219, 0.5);
 }
 
+/* Collapse/Expand Indicators */
+.collapse-indicator {
+    display: inline-block;
+    width: 1.2em;
+    height: 1.2em;
+    cursor: pointer;
+    user-select: none;
+    margin-right: 0.3em;
+    transition: transform 0.2s ease;
+    color: #3498db;
+    font-weight: bold;
+}
+
+.collapse-indicator:hover {
+    transform: scale(1.2);
+    color: #2980b9;
+}
+
+.collapse-indicator.collapsed {
+    color: #95a5a6;
+}
+
+/* Smooth transitions for content */
+.outline-editor {
+    transition: all 0.2s ease;
+}
+
+/* Visual indicator for parent items */
+.outline-line-with-children {
+    position: relative;
+}
+
+.outline-line-with-children::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #ecf0f1;
+    opacity: 0.5;
+}
+
 /* Admin Page */
 .user-form {
     background: white;

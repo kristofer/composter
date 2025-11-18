@@ -747,6 +747,64 @@ class OutlineManager {
     // ========== Save/Load Methods ==========
 
     /**
+     * Export outline to Markdown format
+     */
+    exportToMarkdown() {
+        this.syncFromDisplay();
+        const lines = this.fullContent.split('\n');
+        
+        // Convert to markdown with proper formatting
+        const markdown = lines.map(line => {
+            const indentLevel = this.getIndentLevel(line);
+            const content = line.trim();
+            
+            if (!content) return '';
+            
+            // Use markdown list syntax
+            const indent = '  '.repeat(indentLevel);
+            return `${indent}- ${content}`;
+        }).join('\n');
+        
+        // Add title if exists
+        const title = this.titleInput.value.trim();
+        const fullMarkdown = title ? `# ${title}\n\n${markdown}` : markdown;
+        
+        // Create download
+        this.downloadFile(fullMarkdown, `${title || 'outline'}.md`, 'text/markdown');
+        this.showMessage('Exported to Markdown!', 'success');
+    }
+
+    /**
+     * Export outline to plain text format
+     */
+    exportToText() {
+        this.syncFromDisplay();
+        
+        // Add title if exists
+        const title = this.titleInput.value.trim();
+        const fullText = title ? `${title}\n${'='.repeat(title.length)}\n\n${this.fullContent}` : this.fullContent;
+        
+        // Create download
+        this.downloadFile(fullText, `${title || 'outline'}.txt`, 'text/plain');
+        this.showMessage('Exported to text!', 'success');
+    }
+
+    /**
+     * Helper to download a file
+     */
+    downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    /**
      * Save the outline to the server
      */
     save(shouldClose = false) {
