@@ -1,0 +1,30 @@
+{
+  "name": "composter",
+  "version": "1.0.0",
+  "description": "A decomposition outliner designed for software developers to break down complex problems using computational thinking principles.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": [
+      "**/static/**/*.test.js",
+      "**/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "static/**/*.js",
+      "!static/**/*.test.js"
+    ]
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0"
+  }
+}
