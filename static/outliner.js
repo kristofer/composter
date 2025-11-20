@@ -669,9 +669,20 @@ class OutlineManager {
      * Insert a new line with same indentation as current line
      */
     insertNewLineWithIndent() {
+        // Get cursor position in the display BEFORE syncing
+        const displayCursorPos = this.getCursorPosition();
+        const displayText = this.editor.textContent;
+        
+        // Sync to update fullContent
         this.syncFromDisplay();
         
-        const cursorPos = this.getCursorPosition();
+        // Map cursor position from display to fullContent by accounting for removed indicators
+        // Count how many indicator characters (▶ or ▼) appear before the cursor in the display
+        const beforeCursor = displayText.substring(0, displayCursorPos);
+        const indicatorMatches = beforeCursor.match(/[▶▼] /g);
+        const indicatorChars = indicatorMatches ? indicatorMatches.length * 2 : 0;
+        const cursorPos = displayCursorPos - indicatorChars;
+        
         const lines = this.fullContent.split('\n');
         const currentLineIndex = this.getCurrentLineIndex();
         const lineText = lines[currentLineIndex];
