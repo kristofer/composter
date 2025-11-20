@@ -331,6 +331,137 @@ describe('OutlineManager', () => {
         });
     });
 
+    describe('Enter Key with Collapse Indicators', () => {
+        test('should insert newline correctly when collapse indicators are present', () => {
+            // Set up outline with hierarchy
+            manager.fullContent = 'and another line\n  some more text\n    and some more text\nthis is a second line\n  foo\nbar\nthird line\nfoo bar baz\nfoo again';
+            manager.updateDisplay();
+            
+            // The display will have indicators for lines with children
+            // "and another line" -> "▼ and another line"
+            // "  some more text" -> "  ▼ some more text"
+            // "this is a second line" -> "▼ this is a second line"
+            const displayText = editor.textContent;
+            expect(displayText).toContain('▼ and another line');
+            expect(displayText).toContain('  ▼ some more text');
+            expect(displayText).toContain('▼ this is a second line');
+            
+            // Find position at end of "foo bar baz" in the DISPLAY
+            const displayLines = displayText.split('\n');
+            let targetLineIndex = -1;
+            for (let i = 0; i < displayLines.length; i++) {
+                if (displayLines[i] === 'foo bar baz') {
+                    targetLineIndex = i;
+                    break;
+                }
+            }
+            expect(targetLineIndex).toBeGreaterThanOrEqual(0);
+            
+            // Calculate cursor position at end of "foo bar baz" in display
+            let displayCursorPos = 0;
+            for (let i = 0; i < targetLineIndex; i++) {
+                displayCursorPos += displayLines[i].length + 1;
+            }
+            displayCursorPos += displayLines[targetLineIndex].length;
+            
+            // Set cursor position in display
+            manager.setCursorPosition(displayCursorPos);
+            
+            // Press Enter
+            manager.insertNewLineWithIndent();
+            
+            // Check result
+            const resultLines = manager.fullContent.split('\n');
+            const bazIndex = resultLines.indexOf('foo bar baz');
+            expect(bazIndex).toBeGreaterThanOrEqual(0);
+            expect(resultLines[bazIndex + 1]).toBe(''); // New empty line
+            expect(resultLines[bazIndex + 2]).toBe('foo again'); // Original next line should be intact
+        });
+
+        test('should insert newline correctly at end of line with children', () => {
+            manager.fullContent = 'parent\n  child\nother';
+            manager.updateDisplay();
+            
+            // Display should have: "▼ parent\n  child\nother"
+            const displayText = editor.textContent;
+            expect(displayText).toContain('▼ parent');
+            
+            // Find position at end of "▼ parent" in display
+            const displayLines = displayText.split('\n');
+            const parentLine = displayLines[0];
+            expect(parentLine).toBe('▼ parent');
+            
+            // Set cursor at end of first line (after "parent")
+            manager.setCursorPosition(parentLine.length);
+            
+            // Press Enter
+            manager.insertNewLineWithIndent();
+            
+            // Check result - new line should be inserted after "parent", before "  child"
+            const resultLines = manager.fullContent.split('\n');
+            expect(resultLines[0]).toBe('parent');
+            expect(resultLines[1]).toBe(''); // New empty line
+            expect(resultLines[2]).toBe('  child'); // Child should still be there
+            expect(resultLines[3]).toBe('other');
+        });
+
+        test('should insert newline correctly in middle of text with indicators', () => {
+            manager.fullContent = 'parent line\n  child\nother text';
+            manager.updateDisplay();
+            
+            // Display: "▼ parent line\n  child\nother text"
+            const displayText = editor.textContent;
+            
+            // Set cursor after "parent " (in the middle of "parent line")
+            // In display: "▼ parent line" -> cursor after "parent " means position 9 (▼ + space + parent + space)
+            manager.setCursorPosition(9);
+            
+            // Press Enter
+            manager.insertNewLineWithIndent();
+            
+            // Check result
+            const resultLines = manager.fullContent.split('\n');
+            expect(resultLines[0]).toBe('parent ');
+            expect(resultLines[1]).toBe('line'); // Rest of text on new line
+            expect(resultLines[2]).toBe('  child'); // Children preserved
+            expect(resultLines[3]).toBe('other text');
+        });
+
+        test('should handle multiple levels of nesting with indicators', () => {
+            manager.fullContent = 'level1\n  level2\n    level3\n      level4\nlast';
+            manager.updateDisplay();
+            
+            // Display will have multiple indicators
+            const displayText = editor.textContent;
+            expect(displayText).toContain('▼ level1');
+            expect(displayText).toContain('  ▼ level2');
+            expect(displayText).toContain('    ▼ level3');
+            
+            // Set cursor at end of "last" line
+            const displayLines = displayText.split('\n');
+            let cursorPos = 0;
+            for (let i = 0; i < displayLines.length - 1; i++) {
+                cursorPos += displayLines[i].length + 1;
+            }
+            cursorPos += displayLines[displayLines.length - 1].length;
+            
+            manager.setCursorPosition(cursorPos);
+            
+            // Press Enter
+            manager.insertNewLineWithIndent();
+            
+            // Check result
+            const resultLines = manager.fullContent.split('\n');
+            expect(resultLines.length).toBe(6); // 5 original + 1 new
+            expect(resultLines[0]).toBe('level1');
+            expect(resultLines[1]).toBe('  level2');
+            expect(resultLines[2]).toBe('    level3');
+            expect(resultLines[3]).toBe('      level4');
+            expect(resultLines[4]).toBe('last');
+            expect(resultLines[5]).toBe(''); // New line after "last"
+        });
+    });
+
     describe('Moving Lines', () => {
         beforeEach(() => {
             manager.fullContent = 'Line 1\nLine 2\nLine 3';
