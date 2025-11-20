@@ -30,6 +30,31 @@ The application starts on `http://localhost:8080`
 
 Default credentials: `admin / admin`
 
+## Testing
+
+### Backend Tests (Go)
+```bash
+# Run all Go tests
+go test ./...
+```
+
+### Frontend Tests (JavaScript)
+```bash
+# Install Node.js dependencies (first time only)
+npm install
+
+# Run frontend tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+See [OUTLINER_TESTS.md](OUTLINER_TESTS.md) for detailed information about the frontend test suite.
+
 ## Documentation
 
 For complete documentation, see [SPECIFICATION.md](SPECIFICATION.md)
